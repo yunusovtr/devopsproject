@@ -1,0 +1,310 @@
+server {  
+  server_name {{ 'DOMAIN_PREFIX' | env }}cabinet.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://admin-panel-v2;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {  
+  server_name {{ 'DOMAIN_PREFIX' | env }}up.iecp.ru;
+  listen 80 default_server;
+
+  location / {
+    set $upstream http://frontend;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {  
+  server_name {{ 'DOMAIN_PREFIX' | env }}moderator.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://moderator-panel-v2;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {  
+  server_name {{ 'DOMAIN_PREFIX' | env }}lk.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://partner-eds;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {  
+  server_name {{ 'DOMAIN_PREFIX' | env }}preapp.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://partner-preapp;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server { 
+  server_name {{ 'DOMAIN_PREFIX' | env }}auth2.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://authorization-service-v2:5053;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  server_name {{ 'DOMAIN_PREFIX' | env }}apinew.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://backend;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5004 default_server;
+
+  location / {
+    set $upstream http://1c-integration-api:5004;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5001 default_server;
+
+  location / {
+    set $upstream http://admin-api-v2;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+map $http_x_real_ip $new_x_real_ip {
+  default   $http_x_real_ip;
+  ""        $remote_addr;
+}
+
+server {
+  server_name {{ 'DOMAIN_PREFIX' | env }}epayment.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://external-payment;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $new_x_real_ip;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5011 default_server;
+
+  location / {
+    set $upstream http://kkm-integration-api;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5052 default_server;
+
+  location / {
+    set $upstream http://passport-checker:5052;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5006 default_server;
+
+  location / {
+    set $upstream http://EmailSenderService:5006;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5005 default_server;
+
+  location / {
+    set $upstream http://crypto-api:5005;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  server_name {{ 'DOMAIN_PREFIX' | env }}smev3.iecp.ru;
+
+  location / {
+    set $upstream http://smev3-integration-api;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5010 default_server;
+
+  location / {
+    set $upstream http://smev-integration-api;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5016 default_server;
+
+  location / {
+    set $upstream http://smev-dispatcher;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5007 default_server;
+
+  location / {
+    set $upstream http://cert-service;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 5008 default_server;
+
+  location / {
+    set $upstream http://internal-api;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 7002 default_server;
+
+  location / {
+    limit_req zone=first burst=1000;
+    set $upstream http://pdf-generator:7000;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+
+# Компоненты Селдона
+
+server {  
+  server_name {{ 'DOMAIN_PREFIX' | env }}b2cadmin.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://PersonalAccount.frontend.Admin;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {  
+  server_name {{ 'DOMAIN_PREFIX' | env }}b2c.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://PersonalAccount.frontend.Profile;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  server_name {{ 'DOMAIN_PREFIX' | env }}b2cadmin-api.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://PersonalAccount;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  server_name {{ 'DOMAIN_PREFIX' | env }}b2c-api.iecp.ru;
+  listen 80;
+
+  location / {
+    set $upstream http://PersonalAccount.Web;
+    proxy_pass $upstream;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+# Конец компонентов Селдона

@@ -1,0 +1,6 @@
+---
+# vars file for single_docker
+single_docker_docker_compose_version: "1.29.2"
+single_docker_registry: "{{ docker_registry }}"
+single_docker_insecure_registry: "{{ docker_insecure_registry|default(false)|bool }}"
+single_docker_registry_mirrors: "{{ docker_registry_mirrors }}"

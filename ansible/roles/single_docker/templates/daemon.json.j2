@@ -1,0 +1,1 @@
+{ "insecure-registries":[{{ single_docker_registry|if_one_set_list|surround_by_quote|join(", ") }}], "registry-mirrors": [{{ single_docker_registry_mirrors|if_one_set_list|surround_by_quote|join(", ") }}] }
