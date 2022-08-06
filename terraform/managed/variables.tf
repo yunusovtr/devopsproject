@@ -33,3 +33,31 @@ variable "server_user" {
   description = "User for connection to all servers"
   default     = "ubuntu"
 }
+variable "main_domain" {
+  description = <<EOF
+    Main domain all resources will created within. For example yunusovtr.my.to.
+    It has to be previously registered on afraid.com with its subdomains with strict names:
+     - gitlab
+     - minio
+     - kas
+     - registry
+    And all of those have to be associated to one but any IP address.
+    EOF
+  default     = "example.com"
+}
+variable "cert_issuer_email" {
+  description = "Email of issuer for certificate registration"
+  default     = "admin@example.com"
+}
+variable "afraid_account" {
+  description = "Account on site afraid.com"
+  default     = ""
+}
+variable "afraid_pass" {
+  description = "Password for account on site afraid.com"
+  default     = ""
+}
+variable "automation_token" {
+  description = "I was lazy for writing token generator but not for adding it as variable"
+  default     = "HereShouldBeGeneratedToken"
+}

@@ -1,0 +1,14 @@
+--2022-08-06 13:14:49--  https://yunusovtr:*password*@freedns.afraid.org/nic/update?hostname=yunusovtr.my.to
+Распознаётся freedns.afraid.org (freedns.afraid.org)… 69.42.215.252
+Подключение к freedns.afraid.org (freedns.afraid.org)|69.42.215.252|:443... соединение установлено.
+HTTP-запрос отправлен. Ожидание ответа… 401 Unauthorized
+Выбранная аутентификация: Basic realm="FreeDNS Nic Update"
+Повторное использование соединения с freedns.afraid.org:443.
+HTTP-запрос отправлен. Ожидание ответа… 200 OK
+Длина: нет данных [text/plain]
+Сохранение в: «STDOUT»
+
+-                                                [<=>                                                                                         ]       0  --.-KB/s               -                                                [ <=>                                                                                        ]     163  --.-KB/s    за 0s      
+
+2022-08-06 13:14:50 (8,62 MB/s) - записан в stdout [163]
+

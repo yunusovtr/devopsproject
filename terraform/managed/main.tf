@@ -15,12 +15,13 @@ resource "yandex_kubernetes_cluster" "k8s-cluster" {
      yandex_resourcemanager_folder_iam_binding.editor,
      yandex_resourcemanager_folder_iam_binding.images-puller
    ]
-  provisioner "local-exec" {
-    command = "yc managed-kubernetes cluster get-credentials ${self.name} --external --force"
-  }
-  provisioner "local-exec" {
-    command = "kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/1.21/deploy.yaml"
-  }
+  # provisioner "local-exec" {
+  #   command = "yc managed-kubernetes cluster get-credentials ${self.name} --external --force"
+  # }
+  # provisioner "local-exec" {
+  #   command = "kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/1.21/deploy.yaml"
+  # }
+
 }
 
 resource "yandex_vpc_network" "k8s-network" { name = "k8s-network" }
@@ -103,5 +104,42 @@ resource "yandex_kubernetes_node_group" "k8s-nodes-group" {
   maintenance_policy {
     auto_upgrade = true
     auto_repair  = true
+  }
+}
+
+resource "null_resource" "provisioning" {
+  depends_on = [yandex_kubernetes_node_group.k8s-nodes-group]
+  provisioner "local-exec" {
+    command = <<EOF
+      yc managed-kubernetes cluster get-credentials ${yandex_kubernetes_cluster.k8s-cluster.name} --external --force
+      kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/1.21/deploy.yaml
+      helm upgrade --install gitlab gitlab/gitlab \
+        --set global.hosts.domain=yunusovtr.my.to \
+        --set certmanager-issuer.email=${var.cert_issuer_email} \
+        --set gitlab-runner.runners.privileged=true
+      export INGRESS_IP=$(while [[ ! "$(kubectl get ingress gitlab-webservice-default \
+        -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || true)" =~ [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+ ]]; \
+        do sleep 1; done; \
+        kubectl get ingress gitlab-webservice-default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      wget --no-check-certificate -O - \
+        "https://${var.afraid_account}:${var.afraid_pass}@freedns.afraid.org/nic/update?hostname=${var.main_domain}&myip=$INGRESS_IP"
+      
+      export TOOLBOX_POD=$(kubectl get pod | grep gitlab-toolbox | awk '{print $1};')
+      while [ "$(kubectl get pod $TOOLBOX_POD -o jsonpath='{.status.phase}' || true)" != "Running" ]; do 
+        sleep 1
+      done
+      kubectl exec $TOOLBOX_POD -- gitlab-rails runner \
+        'token = User.first.personal_access_tokens.create(scopes: [:api], name: "Automation token"); token.set_token("${var.automation_token}"); token.save!; puts "Token created";'
+      export PROJECT_ID=$(curl --silent --header "PRIVATE-TOKEN: ${var.automation_token}" -XPOST \
+        "https://gitlab.yunusovtr.my.to/api/v4/projects?name=Application&visibility=public&initialize_with_readme=true" | jq '.id')
+      export AGENT_ID=$(curl --silent --header "Private-Token: ${var.automation_token}" \
+        "https://gitlab.yunusovtr.my.to/api/v4/projects/$PROJECT_ID/cluster_agents" \
+        -H "Content-Type:application/json" -X POST --data '{"name":"gitlab-ci-agent"}' | jq '.id')
+      export AGENT_TOKEN=$(curl --silent --header "Private-Token: ${var.automation_token}" \
+        "https://gitlab.yunusovtr.my.to/api/v4/projects/$PROJECT_ID/cluster_agents/$AGENT_ID/tokens" \
+        -H "Content-Type:application/json" -X POST --data '{"name":"app-token"}' | jq -r '.token')
+      helm upgrade --install gitlab-ci-agent gitlab/gitlab-agent --namespace gitlab-agent --create-namespace \
+        --set image.tag=v15.2.0 --set config.token="$AGENT_TOKEN" --set config.kasAddress=wss://kas.${var.main_domain}
+    EOF
   }
 }
