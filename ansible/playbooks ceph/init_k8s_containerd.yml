@@ -1,0 +1,320 @@
+---
+- hosts: nodes
+  become: yes
+  tags: first
+  tasks:
+
+    - name: Set timezone to MSK
+      timezone:
+        name: Europe/Moscow
+  
+    - name: Make the Swap inactive
+      command: swapoff -a
+
+    - name: Remove Swap entry from /etc/fstab.
+      lineinfile:
+        dest: /etc/fstab
+        regexp: swap
+        state: absent
+    
+    - name: Update apt cache
+      become: yes
+      apt: update_cache=yes cache_valid_time=3600
+
+    - name: Upgrade all apt packages
+      become: yes
+      apt: upgrade=dist
+
+    - name: Create a empty file for containerd module.
+      copy:
+        content: ""
+        dest: /etc/modules-load.d/containerd.conf
+        force: no
+
+    - name: Configure module for containerd.
+      blockinfile:
+        path: /etc/modules-load.d/containerd.conf 
+        block: |
+              overlay
+              br_netfilter
+
+    - name: Create a empty file for kubernetes sysctl params.
+      copy:
+        content: ""
+        dest: /etc/sysctl.d/99-kubernetes-cri.conf
+        force: no
+
+    - name: Configure sysctl params for Kubernetes.
+      lineinfile:
+        path: /etc/sysctl.d/99-kubernetes-cri.conf 
+        line: "{{ item }}"
+      with_items:
+        - 'net.bridge.bridge-nf-call-iptables  = 1'
+        - 'net.ipv4.ip_forward                 = 1'
+        - 'net.bridge.bridge-nf-call-ip6tables = 1'
+
+    - name: Apply sysctl params without reboot.
+      command: sysctl --system
+
+    - name: Installing Prerequisites for Kubernetes
+      apt: 
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg-agent
+          - vim
+          - software-properties-common
+        state: present
+
+    - name: Add Docker’s official GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+        filename: docker
+        mode: 0600
+
+    - name: Install containerd.
+      apt: 
+        name:
+          - containerd.io
+          - mc
+          - jq
+          - gparted
+        state: present
+
+    - name: Configure containerd.
+      file:
+        path: /etc/containerd
+        state: directory
+
+    - name: Configure containerd.
+      shell: /usr/bin/containerd config default > /etc/containerd/config.toml
+
+    - name: Enable containerd service, and start it.
+      systemd: 
+        name: containerd
+        state: restarted
+        enabled: yes
+        daemon-reload: yes
+
+    - name: Add Google official GPG key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Add Kubernetes Repository
+      apt_repository:
+        repo: deb http://apt.kubernetes.io/ kubernetes-xenial main 
+        state: present
+        filename: kubernetes
+        mode: 0600
+
+    - name: Installing Kubernetes Cluster Packages.
+      apt: 
+        name:
+          - kubeadm
+          - kubectl
+          - kubelet
+        state: present
+
+    - name: Enable service kubelet, and enable persistently
+      service: 
+        name: kubelet
+        enabled: yes
+
+    - name: Reboot all the kubernetes nodes.
+      reboot:
+        post_reboot_delay: 10
+        reboot_timeout: 60
+        connect_timeout: 60
+        test_command: uptime
+
+    - pause: seconds=20
+
+- hosts: masters
+  become: yes
+  vars:
+    pod_network_cidr: 10.244.0.0/16
+    pod_network_manifest_file: https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+    #https://docs.projectcalico.org/v3.16/manifests/calico.yaml
+    #rbac_manifest_file: https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+    k8s_master_ip: "{{ local_ip}}"
+
+  tasks:
+    - name: Intilizing Kubernetes Cluster
+      command: >
+        kubeadm init
+        --apiserver-cert-extra-sans="{{ ansible_host }}"
+        --apiserver-advertise-address=0.0.0.0
+        --control-plane-endpoint="{{ ansible_host }}"
+        --pod-network-cidr "{{ pod_network_cidr }}"
+      run_once: true
+      tags: first
+
+    - pause: seconds=30
+      tags: first
+
+    - name: Create directory for kube config.
+      file: 
+        path: /home/{{ansible_user }}/.kube
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: 0755
+
+    - name: Copy /etc/kubernetes/admin.conf to user home directory /home/{{ ansible_user }}/.kube/config.
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/{{ ansible_user }}/.kube/config
+        remote_src: yes
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+    - name: Fetch admin config to local
+      fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: ~/.kube/config
+        flat: yes
+    
+    # - name: Change config for public ip using
+    #   become: false
+    #   command: sed -i 's/{{ local_ip }}/{{ ansible_host }}/g' ~/.kube/config
+    #   delegate_to: localhost
+    #   tags: correct
+
+    - pause: seconds=10
+
+    - name: Remove the cache directory.
+      file: 
+        path: /home/{{ ansible_user }}/.kube/cache
+        state: absent
+
+    - name: Create Pod Network & RBAC.
+      command: "{{ item }}"
+      become: false
+      with_items: 
+        - kubectl apply -f {{ pod_network_manifest_file }}
+           #- kubectl apply -f {{ rbac_manifest_file }}
+           #curl -s https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml | sed 's@rbac.authorization.k8s.io/v1beta1@rbac.authorization.k8s.io/v1@g' | kubectl apply -f -
+
+    - pause: seconds=30
+
+    - name: Get the token for joining the nodes with Kuberentes master.
+      shell: kubeadm token create  --print-join-command
+      register: kubernetes_join_command
+
+    - debug:
+        msg: "{{ kubernetes_join_command.stdout }}"
+
+    - name: Copy join command to local file.
+      become: false
+      local_action: copy content="{{ kubernetes_join_command.stdout_lines[0] }}" dest="/tmp/kubernetes_join_command" mode=0777
+
+- hosts: workers
+  become: yes    
+  tasks:
+    - name: Copy join command to worker nodes.
+      copy:
+        src: /tmp/kubernetes_join_command
+        dest: /tmp/kubernetes_join_command
+        mode: 0777   
+
+    - name: Join the Worker nodes with the master.
+      command: sh /tmp/kubernetes_join_command
+      register: joined_or_not
+
+    - debug:
+        msg: "{{ joined_or_not.stdout }}"
+
+- hosts: masters
+  become: yes
+  tasks:
+    - name: Configure kubectl command auto-completion.
+      lineinfile:
+        dest: /home/{{ ansible_user }}/.bashrc
+        line: 'source <(kubectl completion bash)'
+        insertafter: EOF
+
+- hosts: 127.0.0.1
+  connection: local
+  tags: later
+  vars:
+    path_to_manifests: /tmp/proj_manifests
+  tasks:
+    - name: Create temporary folder for manifests
+      file:
+        path: "{{ path_to_manifests }}"
+        state: directory
+
+    - name: Making manifests available
+      copy:
+        src: "{{ item }}"
+        dest: "{{ path_to_manifests }}"
+      with_items:
+        - k8sprov/base/crds.yaml
+        - k8sprov/base/common.yaml
+        - k8sprov/base/operator.yaml
+        - k8sprov/base/cluster.yaml
+        - k8sprov/base/fs.yaml
+        - k8sprov/base/rook-toolbox.yaml
+        - k8sprov/base/management-ns.yaml
+
+    - name: Check operator existance
+      shell: kubectl get pods --all-namespaces | grep rook-ceph-operator
+      ignore_errors: yes
+      register: check_out
+
+    - name: Apply Rook operator
+      shell:
+        chdir: "{{ path_to_manifests }}"
+        cmd: kubectl create --validate='warn' -f crds.yaml -f common.yaml -f operator.yaml
+      when: check_out.rc != 0
+
+    # - name: Wait for operator's Running state
+    #   shell:
+    #     cmd: kubectl get pods --all-namespaces | grep 'rook-ceph-operator.*Running'
+    #   register: result
+    
+    # - name: Debug
+    #   debug: var=result
+
+    - name: Wait for operator's Running state
+      shell:
+        cmd: kubectl get pods --all-namespaces | grep 'rook-ceph-operator.*Running'
+      register: result
+      until: result.rc == 0
+      retries: 180
+      delay: 1
+    
+    - name: Check cluster existance
+      shell: kubectl -n rook-ceph get cephcluster rook-ceph -o json | jq .status.ceph.health
+      ignore_errors: yes
+      register: check_out
+    
+    - name: Application of Ceph cluster
+      shell:
+        chdir: "{{ path_to_manifests }}"
+        cmd: kubectl create -f cluster.yaml
+      when: check_out.rc != 0 or  not check_out.stdout is search("HEALTH_OK")
+
+    - name: Wait for cluster's health-ok state
+      shell:
+        cmd: kubectl -n rook-ceph get cephcluster rook-ceph -o json | jq .status.ceph.health
+      register: result
+      until: result.rc == 0 and result.stdout is search("HEALTH_OK")
+      retries: 150
+      delay: 5
+    
+    - name: Application of filesystem in Ceph
+      shell:
+        chdir: "{{ path_to_manifests }}"
+        cmd: "{{ item }}"
+      with_items:
+        - kubectl apply -f fs.yaml -f rook-toolbox.yaml -f management-ns.yaml

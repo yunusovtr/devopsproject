@@ -1,0 +1,20 @@
+storage ansible_host=${ storage_public_ip } local_ip=${ storage_local_ip } allowed_cidr=${ cidr }
+
+[nodes]
+%{ for i, addr in nodes_ip ~}
+node${ i } ansible_host=${ addr } local_ip=${ local_ip[i] }
+%{ endfor ~}
+
+[masters]
+node0
+
+[workers]
+%{ for i, addr in nodes_ip ~}
+%{ if i > 0 ~}
+node${ i }
+%{ endif ~}
+%{ endfor ~}
+
+[all:vars]
+ansible_user=${ server_user }
+ansible_ssh_private_key_file=${ private_key }

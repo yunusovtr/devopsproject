@@ -1,0 +1,20 @@
+#?filename=ceph-blockpool.yaml&mini=true&noApply=true
+---
+apiVersion: ceph.rook.io/v1
+kind: CephBlockPool
+metadata:
+  name: my-storage-pool
+  namespace: rook-ceph
+spec:
+  failureDomain: osd
+  replicated:
+    size: 2
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: my-storage
+provisioner: rook.io/block
+parameters:
+  pool: my-storage-pool

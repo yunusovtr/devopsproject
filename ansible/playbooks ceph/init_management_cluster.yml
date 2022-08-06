@@ -1,0 +1,27 @@
+---
+- name: Install Docker everywhere
+  hosts: nodes
+  become: yes
+  roles:
+    - single_docker
+
+- name: Run Rancher on node0 vm
+  hosts: master
+  tags:
+    - rancher
+  tasks:
+    - name:
+      become: yes
+      service:
+        name: docker
+        state: restarted
+    - name: Run Rancher container
+      docker_container:
+        name: rancher
+        image: rancher/rancher
+        state: started
+        ports:
+          - "80:80"
+          - "443:443"
+        restart_policy: unless-stopped
+        privileged: yes

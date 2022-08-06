@@ -19,17 +19,9 @@ variable "node_disk_image" {
   description = "Disk image for nodes"
   default     = "fd8f1tik9a7ap9ik2dg1"
 }
-variable "nat_instance_disk_image" {
-  description = "Disk image for nat instance"
-  default     = "fd8f1tik9a7ap9ik2dg1"
-}
 variable "cidr_nodes" {
   description = "Subnet for Kubernetes nodes"
   default     = "192.168.10.0/24"
-}
-variable "cidr_nat" {
-  description = "Subnet for nat instance"
-  default     = "192.168.11.0/24"
 }
 variable "public_key_path" {
   description = "Path to the public key used for ssh access"
