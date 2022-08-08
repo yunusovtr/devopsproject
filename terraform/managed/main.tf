@@ -193,18 +193,19 @@ resource "null_resource" "provisioning2" {
       
       echo "Clearing repos dir"
       echo "${var.local_repos_dir}/*"
-      #rm -rf ${var.local_repos_dir}/*
+      rm -rf ${var.local_repos_dir}/*
 
       echo "Filling projects' files"
       for PROJ in Crawler UI Deploy
       do
         echo "Filling $PROJ"
-        PROJ_LOW=$($PROJ | tr '[:upper:]' '[:lower:]')
+        PROJ_LOW=$(echo "$PROJ" | tr '[:upper:]' '[:lower:]')
         mkdir -p ${var.local_repos_dir}/$PROJ_LOW
         cd ${var.local_repos_dir}/$PROJ_LOW
-        git init --initial-branch=main
+        git init
         git remote add origin git@gitlab.${var.main_domain}:root/$PROJ.git
-        cp -rf ${path.root}/../../src/$PROJ_LOW ${var.local_repos_dir}/$PROJ_LOW
+        git checkout -b main
+        cp -rf ${abspath(path.root)}/../../src/$PROJ_LOW ${var.local_repos_dir}
         echo "Containment: $(ls)"
         git add .
         git commit -m "Initial commit"

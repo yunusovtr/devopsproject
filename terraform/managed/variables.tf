@@ -63,5 +63,5 @@ variable "automation_token" {
 }
 variable "local_repos_dir" {
   description = "Directory for local projects retaining"
-  default     = "/temp/repos"
+  default     = "/tmp/repos"
 }

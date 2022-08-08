@@ -36,6 +36,8 @@
 - kubectl 1.24
 - jq
 - Terraform v.1.2.3
+- yc
+- git
 
 ---
 
@@ -61,3 +63,8 @@
   - registry.yunusovtr.my.to
 - На странице Dynamic DNS опция "Link updates of the same IP together?" должна быть ON
 - Добавить логин и пароль от afraid.com в файл переменных терраформа в виде переменных afraid_account и afraid_pass.
+
+## CHANGE LOG
+
+- Написал тераформ манифест для создания кластера Kubernetes
+- Написал провижининг для гитлаб сервера и создания на нём нужных репозиториев с копированием данных
