@@ -24,7 +24,7 @@ variable "cidr_nodes" {
   default     = "192.168.10.0/24"
 }
 variable "public_key_path" {
-  description = "Path to the public key used for ssh access"
+  description = "Path to the public key used for ssh access. It has to be in you .ssh directory"
 }
 variable "private_key_path" {
   description = "Path to the private key used for ssh access"
@@ -60,4 +60,8 @@ variable "afraid_pass" {
 variable "automation_token" {
   description = "I was lazy for writing token generator but not for adding it as variable"
   default     = "HereShouldBeGeneratedToken"
+}
+variable "local_repos_dir" {
+  description = "Directory for local projects retaining"
+  default     = "/temp/repos"
 }

@@ -111,35 +111,106 @@ resource "null_resource" "provisioning" {
   depends_on = [yandex_kubernetes_node_group.k8s-nodes-group]
   provisioner "local-exec" {
     command = <<EOF
+      echo "Add k8s context"
       yc managed-kubernetes cluster get-credentials ${yandex_kubernetes_cluster.k8s-cluster.name} --external --force
-      kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/1.21/deploy.yaml
+      
+      echo "Add ingress"
+      #kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/1.21/deploy.yaml
+
+      echo "Install gitlab"
+      helm repo add gitlab https://charts.gitlab.io/
       helm upgrade --install gitlab gitlab/gitlab \
         --set global.hosts.domain=yunusovtr.my.to \
         --set certmanager-issuer.email=${var.cert_issuer_email} \
         --set gitlab-runner.runners.privileged=true
+      
+      echo "Getting ingress IP"
       export INGRESS_IP=$(while [[ ! "$(kubectl get ingress gitlab-webservice-default \
         -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || true)" =~ [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+ ]]; \
         do sleep 1; done; \
-        kubectl get ingress gitlab-webservice-default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      kubectl get ingress gitlab-webservice-default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      echo "Ingress IP: $INGRESS_IP"
+
+      echo "Changing domains IP"
       wget --no-check-certificate -O - \
         "https://${var.afraid_account}:${var.afraid_pass}@freedns.afraid.org/nic/update?hostname=${var.main_domain}&myip=$INGRESS_IP"
       
       export TOOLBOX_POD=$(kubectl get pod | grep gitlab-toolbox | awk '{print $1};')
-      while [ "$(kubectl get pod $TOOLBOX_POD -o jsonpath='{.status.phase}' || true)" != "Running" ]; do 
+      echo "toolbox pod: $TOOLBOX_POD"
+      export WEB_POD=$(kubectl get pod | grep gitlab-webservice | head -n 1 | awk '{print $1};')
+      echo "web service pod: $WEB_POD"
+      echo "Wait for web service's running"
+      while [[ "$(kubectl get pod $WEB_POD -o jsonpath='{.status.phase}' || true)" != "Running" ]]
+      do
         sleep 1
       done
+      echo "Web service is running"
+      
+      echo "Issuing of root token"
       kubectl exec $TOOLBOX_POD -- gitlab-rails runner \
         'token = User.first.personal_access_tokens.create(scopes: [:api], name: "Automation token"); token.set_token("${var.automation_token}"); token.save!; puts "Token created";'
-      export PROJECT_ID=$(curl --silent --header "PRIVATE-TOKEN: ${var.automation_token}" -XPOST \
-        "https://gitlab.yunusovtr.my.to/api/v4/projects?name=Application&visibility=public&initialize_with_readme=true" | jq '.id')
-      export AGENT_ID=$(curl --silent --header "Private-Token: ${var.automation_token}" \
-        "https://gitlab.yunusovtr.my.to/api/v4/projects/$PROJECT_ID/cluster_agents" \
-        -H "Content-Type:application/json" -X POST --data '{"name":"gitlab-ci-agent"}' | jq '.id')
-      export AGENT_TOKEN=$(curl --silent --header "Private-Token: ${var.automation_token}" \
-        "https://gitlab.yunusovtr.my.to/api/v4/projects/$PROJECT_ID/cluster_agents/$AGENT_ID/tokens" \
-        -H "Content-Type:application/json" -X POST --data '{"name":"app-token"}' | jq -r '.token')
-      helm upgrade --install gitlab-ci-agent gitlab/gitlab-agent --namespace gitlab-agent --create-namespace \
-        --set image.tag=v15.2.0 --set config.token="$AGENT_TOKEN" --set config.kasAddress=wss://kas.${var.main_domain}
+      echo "Wait for DNS records update"
+      while [[ "$(nslookup gitlab.${var.main_domain} | grep -Po '(?<=Address: )(.+)$' || true)" != "$INGRESS_IP" ]]
+      do
+        sleep 1
+      done
+      sleep 15
+
+      echo "Creating repos"
+      for PROJ in Crawler UI Deploy
+      do
+        echo "Creating repo $PROJ"
+        export PROJECT_ID=$(curl --silent --header "PRIVATE-TOKEN: ${var.automation_token}" -XPOST \
+          "https://gitlab.${var.main_domain}/api/v4/projects?name=$PROJ&visibility=public&initialize_with_readme=false" | jq '.id')
+        echo $PROJECT_ID
+        export AGENT_ID=$(curl --silent --header "Private-Token: ${var.automation_token}" \
+          "https://gitlab.${var.main_domain}/api/v4/projects/$PROJECT_ID/cluster_agents" \
+          -H "Content-Type:application/json" -X POST --data "{\"name\":\"gitlab-ci-agent-$(echo "$PROJ" | tr '[:upper:]' '[:lower:]')\"}" | jq '.id')
+        echo $AGENT_ID
+        export AGENT_TOKEN=$(curl --silent --header "Private-Token: ${var.automation_token}" \
+          "https://gitlab.${var.main_domain}/api/v4/projects/$PROJECT_ID/cluster_agents/$AGENT_ID/tokens" \
+          -H "Content-Type:application/json" -X POST --data '{"name":"app-token"}' | jq -r '.token')
+        echo $AGENT_TOKEN
+        helm upgrade --install gitlab-ci-agent-$(echo "$PROJ" | tr '[:upper:]' '[:lower:]') gitlab/gitlab-agent \
+          --namespace gitlab-agent \
+          --create-namespace \
+          --set image.tag=v15.2.0 --set config.token="$AGENT_TOKEN" --set config.kasAddress=wss://kas.${var.main_domain}
+      done
+      echo "Everything is done"
     EOF
+    interpreter = ["/bin/bash", "-c"]
+  }
+}
+
+resource "null_resource" "provisioning2" {
+  depends_on = [yandex_kubernetes_node_group.k8s-nodes-group,null_resource.provisioning]
+  provisioner "local-exec" {
+    command = <<EOF
+      echo "Adding SSH key"
+      curl --silent --header "Private-Token: ${var.automation_token}" \
+        "https://gitlab.${var.main_domain}/api/v4/user/keys" \
+        -H "Content-Type:application/json" -X POST --data "{\"title\":\"ssh-cert\",\"key\":\"$(cat ${var.public_key_path})\"}"
+      
+      echo "Clearing repos dir"
+      echo "${var.local_repos_dir}/*"
+      #rm -rf ${var.local_repos_dir}/*
+
+      echo "Filling projects' files"
+      for PROJ in Crawler UI Deploy
+      do
+        echo "Filling $PROJ"
+        PROJ_LOW=$($PROJ | tr '[:upper:]' '[:lower:]')
+        mkdir -p ${var.local_repos_dir}/$PROJ_LOW
+        cd ${var.local_repos_dir}/$PROJ_LOW
+        git init --initial-branch=main
+        git remote add origin git@gitlab.${var.main_domain}:root/$PROJ.git
+        cp -rf ${path.root}/../../src/$PROJ_LOW ${var.local_repos_dir}/$PROJ_LOW
+        echo "Containment: $(ls)"
+        git add .
+        git commit -m "Initial commit"
+        git push -u origin main
+      done
+    EOF
+    interpreter = ["/bin/bash", "-c"]
   }
 }
