@@ -65,3 +65,13 @@ variable "local_repos_dir" {
   description = "Directory for local projects retaining"
   default     = "/tmp/repos"
 }
+variable "docker_account" {
+  description = "Account for pushing to docker official repositary"
+}
+variable "docker_pass" {
+  description = "Password of account for pushing to docker official repositary"
+}
+variable "repos_group_name" {
+  description = "Name of groups of repositories"
+  default     = "devops-project"
+}
