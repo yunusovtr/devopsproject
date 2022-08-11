@@ -71,7 +71,7 @@ resource "yandex_kubernetes_node_group" "k8s-nodes-group" {
     }
 
     resources {
-      memory = 8
+      memory = 6
       cores  = 4
     }
 
@@ -222,7 +222,10 @@ resource "null_resource" "provisioning2" {
         GIT_SSH_COMMAND="ssh -i ${var.private_key_path} -o StrictHostKeyChecking=no" git push --set-upstream origin main
       done
 
-      echo "Everything is done"
+      echo "Obtaining root password"
+      ROOT_PASS="$(kubectl get secret gitlab-gitlab-initial-root-password -o jsonpath='{.data.password}' | base64 -d)"
+
+      echo "Everything is done. You can connect to gitlab.${var.main_domain} with root password:\n $ROOT_PASS"
     EOF
     interpreter = ["/bin/bash", "-c"]
   }

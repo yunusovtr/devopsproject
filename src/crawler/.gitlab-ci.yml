@@ -2,15 +2,37 @@
 image: alpine:latest
 
 stages:
-  - build
   - test
+  - build
   - review
   - release
   - cleanup
   - deploy
 
 variables:
-  KUBE_NAMESPACE: review
+  DIND: docker:18.09.7-dind
+  CI_REGISTRY: 'index.docker.io'
+  CI_APPLICATION_TAG: $CI_COMMIT_REF_SLUG
+  DOCKER_HOST: tcp://localhost:2375/
+before_script:
+  - CI_APPLICATION_REPOSITORY=$(echo "$CI_REGISTRY/$CI_REGISTRY_USER/$CI_PROJECT_NAME" | tr '[:upper:]' '[:lower:]')
+
+
+test:
+  stage: test
+  image: python:3.6-alpine
+  script:
+    - pip install -r requirements.txt -r requirements-test.txt
+    - python -m unittest discover -s tests/
+    - coverage run -m unittest discover -s tests/
+    - coverage xml --include crawler/crawler.py
+  artifacts:
+    reports:
+      coverage_report: 
+        coverage_format: cobertura
+        path: coverage.xml
+  only:
+    - branches
 
 build:
   stage: build
@@ -18,71 +40,45 @@ build:
     - branches
   image: docker:git
   services:
-    - docker:18.09.7-dind
-  variables:
-    DOCKER_DRIVER: overlay2
-    CI_REGISTRY: 'index.docker.io'
-    CI_APPLICATION_REPOSITORY: $CI_REGISTRY/$CI_PROJECT_PATH
-    CI_APPLICATION_TAG: $CI_COMMIT_REF_SLUG
-    CI_CONTAINER_NAME: ci_job_build_${CI_JOB_ID}
-  before_script:
-    - >
-      if ! docker info &>/dev/null; then
-        if [ -z "$DOCKER_HOST" -a "$KUBERNETES_PORT" ]; then
-          export DOCKER_HOST='tcp://localhost:2375'
-        fi
-      fi
+    - $DIND
   script:
-    # Building
-    - echo "Building Dockerfile-based application..."
-    # - echo `git show --format="%h" HEAD | head -1` > build_info.txt
-    # - echo `git rev-parse --abbrev-ref HEAD` >> build_info.txt
     - docker build -t "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG" .
-    - >
-      if [[ -n "$CI_REGISTRY_USER" ]]; then
-        echo "Logging to GitLab Container Registry with CI credentials...for build"
-        docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
-      fi
+    - echo "Logging to GitLab Container Registry with CI credentials...for build"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
     - echo "Pushing to GitLab Container Registry..."
     - docker push "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG"
 
-test:
-  stage: test
-  script:
-    - exit 0
-  only:
-    - branches
 
-release:
-  stage: release
-  image: docker
-  services:
-    - docker:18.09.7-dind
-  variables:
-    CI_REGISTRY: 'index.docker.io'
-    CI_APPLICATION_REPOSITORY: $CI_REGISTRY/$CI_PROJECT_PATH
-    CI_APPLICATION_TAG: $CI_COMMIT_REF_SLUG
-    CI_CONTAINER_NAME: ci_job_build_${CI_JOB_ID}
-  before_script:
-    - >
-      if ! docker info &>/dev/null; then
-        if [ -z "$DOCKER_HOST" -a "$KUBERNETES_PORT" ]; then
-          export DOCKER_HOST='tcp://localhost:2375'
-        fi
-      fi
-  script:
-    # Releasing
-    - echo "Updating docker images ..."
-    - >
-      if [[ -n "$CI_REGISTRY_USER" ]]; then
-        echo "Logging to GitLab Container Registry with CI credentials for release..."
-        docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
-      fi
-    - docker pull "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG"
-    - docker tag "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG" "$CI_APPLICATION_REPOSITORY:latest"
-    - docker push "$CI_APPLICATION_REPOSITORY:latest"
-  only:
-    - main
+# release:
+#   stage: release
+#   image: docker
+#   services:
+#     - docker:18.09.7-dind
+#   variables:
+#     CI_REGISTRY: 'index.docker.io'
+#     CI_APPLICATION_REPOSITORY: $CI_REGISTRY/$CI_PROJECT_PATH
+#     CI_APPLICATION_TAG: $CI_COMMIT_REF_SLUG
+#     CI_CONTAINER_NAME: ci_job_build_${CI_JOB_ID}
+#   before_script:
+#     - >
+#       if ! docker info &>/dev/null; then
+#         if [ -z "$DOCKER_HOST" -a "$KUBERNETES_PORT" ]; then
+#           export DOCKER_HOST='tcp://localhost:2375'
+#         fi
+#       fi
+#   script:
+#     # Releasing
+#     - echo "Updating docker images ..."
+#     - >
+#       if [[ -n "$CI_REGISTRY_USER" ]]; then
+#         echo "Logging to GitLab Container Registry with CI credentials for release..."
+#         docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
+#       fi
+#     - docker pull "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG"
+#     - docker tag "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG" "$CI_APPLICATION_REPOSITORY:latest"
+#     - docker push "$CI_APPLICATION_REPOSITORY:latest"
+#   only:
+#     - main
 
 # deploy:
 #   stage: deploy
