@@ -1,7 +1,7 @@
-name: crawler
+name: ui
 apiVersion: v2
 version: 1.0.0
-description: Crawler of Search engine
+description: User interface of Search engine
 maintainers:
   - name: Yunusov Timur
     email: yunusovtr@live.ru

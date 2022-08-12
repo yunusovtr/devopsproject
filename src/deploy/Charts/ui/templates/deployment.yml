@@ -1,0 +1,34 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "ui.fullname" . }}
+  labels:
+    app: search-engine
+    component: ui
+    release: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: search-engine
+      component: ui
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      name: ui
+      labels:
+        app: search-engine
+        component: ui
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        name: ui
+        imagePullPolicy: "{{ .Values.imagePullPolicy }}"
+        env:
+        - name: MONGO
+          value: "{{ .Values.mongo.host | default ( printf "%s-%s" .Release.Name "mongodb" ) }}"
+        - name: MONGO_PORT
+          value: "{{ .Values.mongo.port }}"

@@ -2,20 +2,15 @@
 port: 8000
 
 image:
-  repository: yunusovtr/crawler
+  repository: yunusovtr/ui
   tag: main
 
 mongo:
   #host: mongodb
   port: 27017
 
-rmq:
-  #host: rabbitmq
-  username: rabbitmq
-  password: rabbitmq
-  queue: search-engine
-
 checkInterval: 120
 excludeUrls: ".*github.com"
 startUrl: "https://vitkhab.github.io/search_engine_test_site/"
 imagePullPolicy: Always
+domain: ytr.apsago.com
