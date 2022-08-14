@@ -166,7 +166,7 @@ resource "null_resource" "provisioning2" {
   provisioner "local-exec" {
     command = <<EOF
       echo "Creating group"
-      export GROUP_ID=$(curl --silent -H "Private-Token: ${var.automation_token}" -XPOST \
+      export GROUP_ID=$(curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
         "https://gitlab.${var.main_domain}/api/v4/groups?name=${var.repos_group_name}&path=${var.repos_group_name}" | jq '.id')
       echo $GROUP_ID
 
@@ -226,6 +226,8 @@ resource "null_resource" "provisioning2" {
       ROOT_PASS="$(kubectl get secret gitlab-gitlab-initial-root-password -o jsonpath='{.data.password}' | base64 -d)"
 
       echo "Everything is done. You can connect to gitlab.${var.main_domain} with root password:\n $ROOT_PASS"
+      echo "Use path ${var.local_repos_dir} for application repository maintainance. Run next command for appropriate access:"
+      echo "export GIT_SSH_COMMAND=\"ssh -i ${var.private_key_path} -o StrictHostKeyChecking=no\""
     EOF
     interpreter = ["/bin/bash", "-c"]
   }
