@@ -1,7 +1,0 @@
-name: basic-ingress
-apiVersion: v2
-version: 1.0.0
-description: Basic Ingress
-maintainers:
-  - name: Someone
-    email: my@mail.com

@@ -2,15 +2,15 @@
 port: 8000
 
 image:
-  repository: yunusovtr/ui
+  repository:
   tag: main
 
 mongo:
-  #host: mongodb
+  host: mongodb
   port: 27017
 
 checkInterval: 120
 excludeUrls: ".*github.com"
 startUrl: "https://vitkhab.github.io/search_engine_test_site/"
 imagePullPolicy: Always
-domain: ytr.apsago.com
+domain:

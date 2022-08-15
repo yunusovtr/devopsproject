@@ -111,6 +111,7 @@ resource "null_resource" "provisioning" {
   depends_on = [yandex_kubernetes_node_group.k8s-nodes-group]
   provisioner "local-exec" {
     command = <<EOF
+      set -e
       echo "Add k8s context"
       yc managed-kubernetes cluster get-credentials ${yandex_kubernetes_cluster.k8s-cluster.name} --external --force
       
@@ -165,6 +166,7 @@ resource "null_resource" "provisioning2" {
   depends_on = [yandex_kubernetes_node_group.k8s-nodes-group,null_resource.provisioning]
   provisioner "local-exec" {
     command = <<EOF
+      set -e
       echo "Creating group"
       export GROUP_ID=$(curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
         "https://gitlab.${var.main_domain}/api/v4/groups?name=${var.repos_group_name}&path=${var.repos_group_name}" | jq '.id')
@@ -177,6 +179,9 @@ resource "null_resource" "provisioning2" {
       curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
         "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=CI_REGISTRY_PASSWORD&masked=true" \
          -H "Content-Type:application/json" --data "{\"value\":\"${var.docker_pass}\"}"
+      curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
+        "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=APP_DOMAIN" \
+         -H "Content-Type:application/json" --data "{\"value\":\"${var.main_domain}\"}"
 
       echo "Creating repos"
       for PROJ in Crawler UI Deploy

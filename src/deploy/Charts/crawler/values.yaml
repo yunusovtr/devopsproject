@@ -2,7 +2,7 @@
 port: 8000
 
 image:
-  repository: yunusovtr/crawler
+  repository:
   tag: main
 
 mongo:
@@ -10,7 +10,7 @@ mongo:
   port: 27017
 
 rmq:
-  #host: rabbitmq
+  host: rabbitmq
   username: rabbitmq
   password: rabbitmq
   queue: search-engine

@@ -1,0 +1,21 @@
+
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  image: alpine/k8s:1.23.7
+  only:
+    - triggers
+    - branches
+  script:
+    - kubectl version --client
+    - kubectl config get-contexts
+    - kubectl config use-context $(kubectl config get-contexts | tail -n +2 | head -n 1 | awk '{print $1};')
+    - helm ls
+    - kubectl describe ns "app" || kubectl create ns "app"
+    - >
+      helm upgrade --install sengine -n app ./Charts/search-engine \
+        --set "ui.domain=$APP_DOMAIN" \
+        --set "ui.image.repository=$CI_REGISTRY_USER/ui" \
+        --set "crawler.image.repository=$CI_REGISTRY_USER/crawler"

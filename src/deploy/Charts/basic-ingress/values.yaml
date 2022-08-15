@@ -1,5 +1,0 @@
----
-
-ingress:
-  class: nginx
-  host:

@@ -6,3 +6,11 @@ rabbitmq:
   auth:
     username: rabbitmq
     password: rabbitmq
+
+ui:
+  mongo:
+    host: ""
+
+crawler:
+  rmq:
+    host: ""
