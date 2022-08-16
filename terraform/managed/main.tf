@@ -183,8 +183,9 @@ resource "null_resource" "provisioning2" {
         "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=APP_DOMAIN" \
          -H "Content-Type:application/json" --data "{\"value\":\"${var.main_domain}\"}"
 
+      REPOS="Crawler UI Deploy Monitoring"
       echo "Creating repos"
-      for PROJ in Crawler UI Deploy
+      for PROJ in $REPOS
       do
         echo "Creating repo $PROJ"
         export PROJECT_ID=$(curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
@@ -211,7 +212,7 @@ resource "null_resource" "provisioning2" {
       rm -rf ${var.local_repos_dir}/*
 
       echo "Filling projects' files"
-      for PROJ in Crawler UI Deploy
+      for PROJ in $REPOS
       do
         echo "Filling $PROJ"
         PROJ_LOW=$(echo "$PROJ" | tr '[:upper:]' '[:lower:]')

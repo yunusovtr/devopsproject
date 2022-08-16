@@ -1,0 +1,39 @@
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  variables:
+    MONITORING_NS: monitoring
+  only:
+    - triggers
+    - branches
+  script:
+    - apk add -U openssl curl tar gzip bash ca-certificates git
+    - wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub
+    - wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.23-r3/glibc-2.23-r3.apk
+    - apk add glibc-2.23-r3.apk
+    - curl https://storage.googleapis.com/pub/gsutil.tar.gz | tar -xz -C $HOME
+    - export PATH=${PATH}:$HOME/gsutil
+    - curl https://get.helm.sh/helm-v3.9.2-linux-amd64.tar.gz | tar zx
+    - mv linux-amd64/helm /usr/bin/
+    - helm version
+    - curl  -o /usr/bin/sync-repo.sh https://raw.githubusercontent.com/kubernetes/helm/master/scripts/sync-repo.sh
+    - chmod a+x /usr/bin/sync-repo.sh
+    - curl -L -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    - chmod +x /usr/bin/kubectl
+    - kubectl version --client
+    - kubectl config get-contexts
+    - kubectl config use-context $(kubectl config get-contexts | tail -n +2 | head -n 1 | awk '{print $1};')
+    - helm ls
+    - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    #- helm repo add grafana https://grafana.github.io/helm-charts
+    - helm repo update
+    - kubectl describe ns $MONITORING_NS || kubectl create ns $MONITORING_NS
+    - helm upgrade --install prom prometheus-community/kube-prometheus-stack -n $MONITORING_NS --debug
+    #--values prometheus-operator/values.yaml
+    - echo "Grafana credentials:"
+    - kubectl get secret/prom-grafana -n $MONITORING_NS -o json
+    - helm upgrade --install promtail grafana/promtail -f promtail/values.yaml -n $MONITORING_NS
+    - helm upgrade --install loki grafana/loki-distributed -n $MONITORING_NS
