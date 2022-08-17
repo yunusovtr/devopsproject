@@ -1,0 +1,12 @@
+name: monitoring-stack
+apiVersion: v2
+version: 1.0.0
+description: Monitoring and logging applications
+maintainers:
+  - name: Yunusov Timur
+    email: yunusovtr@live.ru
+dependencies:
+
+  - name: kube-prometheus-stack
+    version: 39.6.0
+    repository: https://prometheus-community.github.io/helm-charts
