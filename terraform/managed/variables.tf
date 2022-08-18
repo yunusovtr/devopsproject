@@ -75,3 +75,7 @@ variable "repos_group_name" {
   description = "Name of groups of repositories"
   default     = "devops-project"
 }
+variable "project_list" {
+  description = "List of projects to provision in GitLab"
+  default = "Crawler UI Deploy Monitoring"
+}

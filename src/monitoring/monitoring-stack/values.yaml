@@ -1,0 +1,600 @@
+kube-prometheus-stack: 
+  # prometheus:
+  #   prometheusSpec:
+  #     serviceMonitorSelectorNilUsesHelmValues: false
+  #     serviceMonitorSelector: {}
+  #     serviceMonitorNamespaceSelector: {}
+  prometheus:
+    prometheusSpec:
+      additionalScrapeConfigs:
+      - job_name: 'sengine-crawler'
+        metrics_path: /metrics
+        static_configs:
+        - targets: ['sengine-crawler.app:8000']
+      - job_name: 'sengine-ui'
+        metrics_path: /metrics
+        static_configs:
+        - targets: ['sengine-ui.app:8000']
+
+  grafana:
+    sidecar:
+      datasources:
+        defaultDatasourceEnabled: true
+    additionalDataSources:
+      - name: Loki
+        type: loki
+        url: http://{{ .Release.Name }}-loki-gateway
+    dashboards:
+      default:
+        search-engine-dashboard:
+          # This is a path to a file inside the dashboards directory inside the chart directory
+          json: |
+            {
+            "annotations": {
+              "list": [
+                {
+                  "builtIn": 1,
+                  "datasource": {
+                    "type": "datasource",
+                    "uid": "grafana"
+                  },
+                  "enable": true,
+                  "hide": true,
+                  "iconColor": "rgba(0, 211, 255, 1)",
+                  "name": "Annotations & Alerts",
+                  "target": {
+                    "limit": 100,
+                    "matchAny": false,
+                    "tags": [],
+                    "type": "dashboard"
+                  },
+                  "type": "dashboard"
+                }
+              ]
+            },
+            "editable": true,
+            "fiscalYearStartMonth": 0,
+            "graphTooltip": 0,
+            "id": 27,
+            "links": [],
+            "liveNow": false,
+            "panels": [
+              {
+                "collapsed": true,
+                "gridPos": {
+                  "h": 1,
+                  "w": 24,
+                  "x": 0,
+                  "y": 0
+                },
+                "id": 18,
+                "panels": [
+                  {
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "prometheus"
+                    },
+                    "fieldConfig": {
+                      "defaults": {
+                        "color": {
+                          "mode": "thresholds"
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": null
+                            }
+                          ]
+                        }
+                      },
+                      "overrides": []
+                    },
+                    "gridPos": {
+                      "h": 4,
+                      "w": 12,
+                      "x": 0,
+                      "y": 1
+                    },
+                    "id": 2,
+                    "options": {
+                      "colorMode": "background",
+                      "graphMode": "area",
+                      "justifyMode": "center",
+                      "orientation": "auto",
+                      "reduceOptions": {
+                        "calcs": [
+                          "last"
+                        ],
+                        "fields": "",
+                        "values": false
+                      },
+                      "textMode": "value"
+                    },
+                    "pluginVersion": "9.0.5",
+                    "targets": [
+                      {
+                        "datasource": {
+                          "type": "prometheus",
+                          "uid": "prometheus"
+                        },
+                        "editorMode": "builder",
+                        "exemplar": true,
+                        "expr": "web_pages_served",
+                        "interval": "",
+                        "legendFormat": "Count",
+                        "range": true,
+                        "refId": "A"
+                      }
+                    ],
+                    "title": "Открытые страницы",
+                    "transparent": true,
+                    "type": "stat"
+                  },
+                  {
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "prometheus"
+                    },
+                    "fieldConfig": {
+                      "defaults": {
+                        "color": {
+                          "mode": "thresholds"
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": null
+                            }
+                          ]
+                        }
+                      },
+                      "overrides": []
+                    },
+                    "gridPos": {
+                      "h": 4,
+                      "w": 12,
+                      "x": 12,
+                      "y": 1
+                    },
+                    "id": 6,
+                    "options": {
+                      "colorMode": "background",
+                      "graphMode": "area",
+                      "justifyMode": "center",
+                      "orientation": "auto",
+                      "reduceOptions": {
+                        "calcs": [
+                          "last"
+                        ],
+                        "fields": "",
+                        "values": false
+                      },
+                      "text": {},
+                      "textMode": "value"
+                    },
+                    "pluginVersion": "9.0.5",
+                    "targets": [
+                      {
+                        "datasource": {
+                          "type": "prometheus",
+                          "uid": "prometheus"
+                        },
+                        "exemplar": true,
+                        "expr": "crawler_pages_parsed",
+                        "interval": "",
+                        "legendFormat": "Count",
+                        "refId": "A"
+                      }
+                    ],
+                    "title": "Страниц проиндексировано",
+                    "transparent": true,
+                    "type": "stat"
+                  }
+                ],
+                "title": "Показатели",
+                "type": "row"
+              },
+              {
+                "collapsed": true,
+                "gridPos": {
+                  "h": 1,
+                  "w": 24,
+                  "x": 0,
+                  "y": 1
+                },
+                "id": 16,
+                "panels": [
+                  {
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "prometheus"
+                    },
+                    "fieldConfig": {
+                      "defaults": {
+                        "color": {
+                          "mode": "palette-classic"
+                        },
+                        "custom": {
+                          "axisLabel": "",
+                          "axisPlacement": "auto",
+                          "barAlignment": 0,
+                          "drawStyle": "line",
+                          "fillOpacity": 0,
+                          "gradientMode": "none",
+                          "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                          },
+                          "lineInterpolation": "linear",
+                          "lineWidth": 1,
+                          "pointSize": 5,
+                          "scaleDistribution": {
+                            "type": "linear"
+                          },
+                          "showPoints": "auto",
+                          "spanNulls": false,
+                          "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                          },
+                          "thresholdsStyle": {
+                            "mode": "off"
+                          }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": null
+                            },
+                            {
+                              "color": "red",
+                              "value": 100
+                            }
+                          ]
+                        }
+                      },
+                      "overrides": []
+                    },
+                    "gridPos": {
+                      "h": 6,
+                      "w": 24,
+                      "x": 0,
+                      "y": 6
+                    },
+                    "id": 4,
+                    "options": {
+                      "legend": {
+                        "calcs": [],
+                        "displayMode": "list",
+                        "placement": "bottom"
+                      },
+                      "tooltip": {
+                        "mode": "single",
+                        "sort": "none"
+                      }
+                    },
+                    "pluginVersion": "8.4.6",
+                    "targets": [
+                      {
+                        "datasource": {
+                          "type": "prometheus",
+                          "uid": "prometheus"
+                        },
+                        "exemplar": true,
+                        "expr": "web_page_gen_time_bucket",
+                        "interval": "",
+                        "legendFormat": "{{ le }}",
+                        "refId": "A"
+                      }
+                    ],
+                    "title": "web_page_gen_time_bucket",
+                    "type": "timeseries"
+                  },
+                  {
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "prometheus"
+                    },
+                    "fieldConfig": {
+                      "defaults": {
+                        "color": {
+                          "mode": "palette-classic"
+                        },
+                        "custom": {
+                          "axisLabel": "",
+                          "axisPlacement": "auto",
+                          "barAlignment": 0,
+                          "drawStyle": "line",
+                          "fillOpacity": 0,
+                          "gradientMode": "none",
+                          "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                          },
+                          "lineInterpolation": "linear",
+                          "lineWidth": 1,
+                          "pointSize": 5,
+                          "scaleDistribution": {
+                            "type": "linear"
+                          },
+                          "showPoints": "auto",
+                          "spanNulls": false,
+                          "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                          },
+                          "thresholdsStyle": {
+                            "mode": "off"
+                          }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": null
+                            },
+                            {
+                              "color": "red",
+                              "value": 100
+                            }
+                          ]
+                        }
+                      },
+                      "overrides": []
+                    },
+                    "gridPos": {
+                      "h": 6,
+                      "w": 24,
+                      "x": 0,
+                      "y": 12
+                    },
+                    "id": 8,
+                    "options": {
+                      "legend": {
+                        "calcs": [],
+                        "displayMode": "list",
+                        "placement": "bottom"
+                      },
+                      "tooltip": {
+                        "mode": "single",
+                        "sort": "none"
+                      }
+                    },
+                    "pluginVersion": "8.4.6",
+                    "targets": [
+                      {
+                        "datasource": {
+                          "type": "prometheus",
+                          "uid": "prometheus"
+                        },
+                        "exemplar": true,
+                        "expr": "crawler_site_connection_time_bucket",
+                        "interval": "",
+                        "legendFormat": "{{ le }}",
+                        "refId": "A"
+                      }
+                    ],
+                    "title": "crawler_site_connection_time_bucket",
+                    "type": "timeseries"
+                  },
+                  {
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "prometheus"
+                    },
+                    "fieldConfig": {
+                      "defaults": {
+                        "color": {
+                          "mode": "palette-classic"
+                        },
+                        "custom": {
+                          "axisLabel": "",
+                          "axisPlacement": "auto",
+                          "barAlignment": 0,
+                          "drawStyle": "line",
+                          "fillOpacity": 0,
+                          "gradientMode": "none",
+                          "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                          },
+                          "lineInterpolation": "linear",
+                          "lineWidth": 1,
+                          "pointSize": 5,
+                          "scaleDistribution": {
+                            "type": "linear"
+                          },
+                          "showPoints": "auto",
+                          "spanNulls": false,
+                          "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                          },
+                          "thresholdsStyle": {
+                            "mode": "off"
+                          }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": null
+                            },
+                            {
+                              "color": "red",
+                              "value": 100
+                            }
+                          ]
+                        }
+                      },
+                      "overrides": []
+                    },
+                    "gridPos": {
+                      "h": 6,
+                      "w": 24,
+                      "x": 0,
+                      "y": 18
+                    },
+                    "id": 10,
+                    "options": {
+                      "legend": {
+                        "calcs": [],
+                        "displayMode": "list",
+                        "placement": "bottom"
+                      },
+                      "tooltip": {
+                        "mode": "single",
+                        "sort": "none"
+                      }
+                    },
+                    "pluginVersion": "8.4.6",
+                    "targets": [
+                      {
+                        "datasource": {
+                          "type": "prometheus",
+                          "uid": "prometheus"
+                        },
+                        "exemplar": true,
+                        "expr": "crawler_page_parse_time_bucket",
+                        "interval": "",
+                        "legendFormat": "{{ le }}",
+                        "refId": "A"
+                      }
+                    ],
+                    "title": "crawler_page_parse_time_bucket",
+                    "type": "timeseries"
+                  }
+                ],
+                "title": "Графики",
+                "type": "row"
+              },
+              {
+                "collapsed": true,
+                "gridPos": {
+                  "h": 1,
+                  "w": 24,
+                  "x": 0,
+                  "y": 2
+                },
+                "id": 20,
+                "panels": [
+                  {
+                    "datasource": {
+                      "type": "loki",
+                      "uid": "P8E80F9AEF21F6940"
+                    },
+                    "gridPos": {
+                      "h": 9,
+                      "w": 24,
+                      "x": 0,
+                      "y": 7
+                    },
+                    "id": 12,
+                    "options": {
+                      "dedupStrategy": "none",
+                      "enableLogDetails": true,
+                      "prettifyLogMessage": false,
+                      "showCommonLabels": false,
+                      "showLabels": false,
+                      "showTime": false,
+                      "sortOrder": "Descending",
+                      "wrapLogMessage": false
+                    },
+                    "targets": [
+                      {
+                        "datasource": {
+                          "type": "loki",
+                          "uid": "P8E80F9AEF21F6940"
+                        },
+                        "editorMode": "builder",
+                        "expr": "{app=\"search-engine\", component=\"ui\"} |= ``",
+                        "queryType": "range",
+                        "refId": "A"
+                      }
+                    ],
+                    "title": "Логи UI",
+                    "transparent": true,
+                    "type": "logs"
+                  },
+                  {
+                    "datasource": {
+                      "type": "loki",
+                      "uid": "P8E80F9AEF21F6940"
+                    },
+                    "gridPos": {
+                      "h": 9,
+                      "w": 24,
+                      "x": 0,
+                      "y": 16
+                    },
+                    "id": 14,
+                    "options": {
+                      "dedupStrategy": "none",
+                      "enableLogDetails": true,
+                      "prettifyLogMessage": false,
+                      "showCommonLabels": false,
+                      "showLabels": false,
+                      "showTime": false,
+                      "sortOrder": "Descending",
+                      "wrapLogMessage": false
+                    },
+                    "targets": [
+                      {
+                        "datasource": {
+                          "type": "loki",
+                          "uid": "P8E80F9AEF21F6940"
+                        },
+                        "editorMode": "builder",
+                        "expr": "{app=\"search-engine\", component=\"crawler\"} |= ``",
+                        "queryType": "range",
+                        "refId": "A"
+                      }
+                    ],
+                    "title": "Логи Crawler",
+                    "type": "logs"
+                  }
+                ],
+                "title": "Логи",
+                "type": "row"
+              }
+            ],
+            "refresh": "5s",
+            "schemaVersion": 36,
+            "style": "dark",
+            "tags": [],
+            "templating": {
+              "list": []
+            },
+            "time": {
+              "from": "now-15m",
+              "to": "now"
+            },
+            "timepicker": {},
+            "timezone": "",
+            "title": "Search Engine Dashboard",
+            "uid": "WoFgDbl7k",
+            "version": 4,
+            "weekStart": ""
+            }
+
+promtail:
+  config:
+    clients:
+      - url: http://{{ .Release.Name }}-loki-gateway/loki/api/v1/push
+        tenant_id: 1

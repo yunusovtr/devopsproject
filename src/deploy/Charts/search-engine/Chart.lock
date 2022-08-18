@@ -11,8 +11,5 @@ dependencies:
 - name: rabbitmq
   repository: https://charts.bitnami.com/bitnami
   version: 10.2.0
-- name: kube-prometheus-stack
-  repository: https://prometheus-community.github.io/helm-charts
-  version: 39.6.0
-digest: sha256:8ec2488324cd0f1f6b68a87ce5b856ba483ff1143fe93cd64cfe4726854c652b
-generated: "2022-08-16T18:11:43.295327965+03:00"
+digest: sha256:9af7779ff38adece5243b42e2cb6b36e5f081de9d273853c4f0f189f221f2591
+generated: "2022-08-18T16:26:44.125678984+03:00"

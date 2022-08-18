@@ -1,0 +1,25 @@
+name: monitoring-stack
+apiVersion: v2
+version: 1.0.0
+description: Monitoring for k8s cluster and for Search Engine app
+maintainers:
+  - name: Yunusov Timur
+    email: yunusovtr@live.ru
+dependencies:
+  - name: crawler
+    version: "1.0.0"
+    repository: "file://../crawler"
+
+  - name: ui
+    version: "1.0.0"
+    repository: "file://../ui"
+
+  - name: mongodb
+    alias: mongodb
+    version: 11.2.0
+    repository: https://charts.bitnami.com/bitnami
+
+  - name: rabbitmq
+    alias: rabbitmq
+    version: 10.2.0
+    repository: https://charts.bitnami.com/bitnami

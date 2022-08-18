@@ -107,7 +107,7 @@ resource "yandex_kubernetes_node_group" "k8s-nodes-group" {
   }
 }
 
-resource "null_resource" "provisioning" {
+resource "null_resource" "prov1" {
   depends_on = [yandex_kubernetes_node_group.k8s-nodes-group]
   provisioner "local-exec" {
     command = <<EOF
@@ -162,8 +162,8 @@ resource "null_resource" "provisioning" {
   }
 }
 
-resource "null_resource" "provisioning2" {
-  depends_on = [yandex_kubernetes_node_group.k8s-nodes-group,null_resource.provisioning]
+resource "null_resource" "prov2" {
+  depends_on = [yandex_kubernetes_node_group.k8s-nodes-group,null_resource.prov1]
   provisioner "local-exec" {
     command = <<EOF
       set -e
@@ -183,7 +183,7 @@ resource "null_resource" "provisioning2" {
         "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=APP_DOMAIN" \
          -H "Content-Type:application/json" --data "{\"value\":\"${var.main_domain}\"}"
 
-      REPOS="Crawler UI Deploy Monitoring"
+      REPOS="${var.project_list}"
       echo "Creating repos"
       for PROJ in $REPOS
       do
@@ -206,12 +206,21 @@ resource "null_resource" "provisioning2" {
       curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
         "https://gitlab.${var.main_domain}/api/v4/user/keys?title=ssh-cert" \
         -H "Content-Type:application/json" --data "{\"key\":\"$(cat ${var.public_key_path})\"}"
-      
+    EOF
+    interpreter = ["/bin/bash", "-c"]
+  }
+}
+
+resource "null_resource" "prov3" {
+  depends_on = [yandex_kubernetes_node_group.k8s-nodes-group,null_resource.prov2]
+  provisioner "local-exec" {
+    command = <<EOF
       echo "Clearing repos dir"
       echo "${var.local_repos_dir}/*"
       rm -rf ${var.local_repos_dir}/*
 
       echo "Filling projects' files"
+      REPOS="${var.project_list}"
       for PROJ in $REPOS
       do
         echo "Filling $PROJ"
@@ -223,7 +232,7 @@ resource "null_resource" "provisioning2" {
         git checkout -b main
         cp -rf ${abspath(path.root)}/../../src/$PROJ_LOW ${var.local_repos_dir}
         echo "Containment: $(ls)"
-        git add .
+        git add -A
         git commit -m "Initial commit"
         GIT_SSH_COMMAND="ssh -i ${var.private_key_path} -o StrictHostKeyChecking=no" git push --set-upstream origin main
       done
