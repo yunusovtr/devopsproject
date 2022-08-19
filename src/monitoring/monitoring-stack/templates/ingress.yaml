@@ -1,0 +1,52 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ template "monitoring.fullname" . }}-redirect
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: {{ .Release.Name }}-grafana.{{ .Release.Namespace }}.svc.cluster.local
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ template "monitoring.fullname" . }}
+  annotations:
+    cert-manager.io/issuer: gitlab-issuer
+    kubernetes.io/ingress.provider: nginx
+    meta.helm.sh/release-name: gitlab
+    meta.helm.sh/release-namespace: default
+    nginx.ingress.kubernetes.io/custom-http-errors: ""
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    kubernetes.io/ingress.allow-http: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  labels:
+    app: kas
+    app.kubernetes.io/managed-by: Helm
+    chart: kas-6.2.2
+    heritage: Helm
+    release: gitlab
+    app2: {{ template "monitoring.fullname" . }}
+    component: ui
+    release2: {{ .Release.Name }}
+  namespace: default
+spec:
+  ingressClassName: gitlab-nginx
+  rules:
+  - host: {{ .Values.domain }}
+    http:
+      paths:
+      - path: /grafana/?(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ template "monitoring.fullname" . }}-redirect
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - {{ .Values.domain }}
+    secretName: sengine-ui-tls

@@ -15,9 +15,10 @@ deploy:
     - kubectl config use-context $(kubectl config get-contexts | tail -n +2 | head -n 1 | awk '{print $1};')
     - helm ls
     - kubectl describe ns $MONITORING_NS || kubectl create ns $MONITORING_NS
-    - helm upgrade --install observation ./monitoring-stack -n $MONITORING_NS
-    #--values prometheus-operator/values.yaml
-    - echo "Grafana credentials:"
-    - kubectl get secret/observation-grafana -n $MONITORING_NS -o json
-    # - helm upgrade --install promtail grafana/promtail -f promtail/values.yaml -n $MONITORING_NS
-    # - helm upgrade --install loki grafana/loki-distributed -n $MONITORING_NS
+    - >
+      helm upgrade --install observation ./monitoring-stack -n $MONITORING_NS \
+        --set "domain=$APP_DOMAIN"
+    - |
+      (kubectl get deployment observation-grafana -n $MONITORING_NS -o yaml | grep GF_SERVER_ROOT_URL) || (kubectl get deployment observation-grafana -n $MONITORING_NS -o yaml | sed "/^        - name: GF_SECURITY_ADMIN_USER/i \\        - name: GF_SERVER_ROOT_URL\\n          value: https://$APP_DOMAIN/grafana\\n        - name: GF_SERVER_SERVE_FROM_SUB_PATH\\n          value: \"true\"" | kubectl apply -f -)
+    - |
+      (kubectl get configmap observation-grafana-dashboards-default -n $MONITORING_NS -o yaml | grep "grafana_dashboard: \"1\"") || (kubectl get configmap observation-grafana-dashboards-default -n $MONITORING_NS -o yaml | sed "/^  labels:/a \\    grafana_dashboard: \"1\"" | kubectl apply -f -)

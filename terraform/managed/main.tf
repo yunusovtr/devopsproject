@@ -120,7 +120,7 @@ resource "null_resource" "prov1" {
 
       echo "Install gitlab"
       helm repo add gitlab https://charts.gitlab.io/
-      helm upgrade --install gitlab gitlab/gitlab \
+      helm upgrade --install gitlab gitlab/gitlab --version 6.2.2 \
         --set global.hosts.domain=${var.main_domain} \
         --set certmanager-issuer.email=${var.cert_issuer_email} \
         --set gitlab-runner.runners.privileged=true
