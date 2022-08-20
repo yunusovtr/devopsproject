@@ -1,6 +1,0 @@
----
-collections:
-  - community.docker
-
-roles:
-  - ssccio.ufw-nat
