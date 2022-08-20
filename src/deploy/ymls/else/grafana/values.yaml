@@ -1,5 +1,0 @@
-gateway:
-  ingress:
-    enabled: true
-
-

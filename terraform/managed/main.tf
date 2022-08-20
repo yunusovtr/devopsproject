@@ -182,6 +182,21 @@ resource "null_resource" "prov2" {
       curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
         "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=APP_DOMAIN" \
          -H "Content-Type:application/json" --data "{\"value\":\"${var.main_domain}\"}"
+      curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
+        "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=EMAIL_TO" \
+         -H "Content-Type:application/json" --data "{\"value\":\"${var.email_to}\"}"
+      curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
+        "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=EMAIL_USER" \
+         -H "Content-Type:application/json" --data "{\"value\":\"${var.email_user}\"}"
+      curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
+        "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=EMAIL_SMTP" \
+         -H "Content-Type:application/json" --data "{\"value\":\"${var.email_smtp}\"}"
+      curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
+        "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=EMAIL_PASSWORD&masked=true" \
+         -H "Content-Type:application/json" --data "{\"value\":\"${var.email_pass}\"}"
+      curl -k --silent -H "Private-Token: ${var.automation_token}" -XPOST \
+        "https://gitlab.${var.main_domain}/api/v4/groups/$GROUP_ID/variables?key=EMAIL_REQUIRE_TLS" \
+         -H "Content-Type:application/json" --data "{\"value\":\"${var.email_require_tls}\"}"
 
       REPOS="${var.project_list}"
       echo "Creating repos"

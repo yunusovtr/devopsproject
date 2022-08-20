@@ -79,3 +79,23 @@ variable "project_list" {
   description = "List of projects to provision in GitLab"
   default = "Crawler UI Deploy Monitoring"
 }
+variable "email_to" {
+  description = "Email address to send emails of alerts"
+  default = "reciever@example.com"
+}
+variable "email_user" {
+  description = "Account name to authenticate onto SMTP server to send emails of alerts"
+  default = "from@example.com"
+}
+variable "email_pass" {
+  description = "Password for authentication onto SMTP server to send emails of alerts"
+  default = "abcd123"
+}
+variable "email_smtp" {
+  description = "SMTP server address for alerting to email"
+  default = "smtp.yandex.ru:465"
+}
+variable "email_require_tls" {
+  description = "Do we need TLS for connecting to SMTP server? For Yandex needed to be false."
+  default = "false"
+}

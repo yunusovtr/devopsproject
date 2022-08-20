@@ -17,7 +17,15 @@ deploy:
     - kubectl describe ns $MONITORING_NS || kubectl create ns $MONITORING_NS
     - >
       helm upgrade --install observation ./monitoring-stack -n $MONITORING_NS \
-        --set "domain=$APP_DOMAIN"
+        -f monitoring-stack-values.yaml \
+        --set "domain=$APP_DOMAIN" \
+        --set "kube-prometheus-stack.alertmanager.config.receivers[0].email_configs[0].to=$EMAIL_TO" \
+        --set "kube-prometheus-stack.alertmanager.config.receivers[0].email_configs[0].from=$EMAIL_USER" \
+        --set "kube-prometheus-stack.alertmanager.config.receivers[0].email_configs[0].smarthost=$EMAIL_SMTP" \
+        --set "kube-prometheus-stack.alertmanager.config.receivers[0].email_configs[0].auth_username=$EMAIL_USER" \
+        --set "kube-prometheus-stack.alertmanager.config.receivers[0].email_configs[0].auth_identity=$EMAIL_USER" \
+        --set "kube-prometheus-stack.alertmanager.config.receivers[0].email_configs[0].auth_password=$EMAIL_PASSWORD" \
+        --set "kube-prometheus-stack.alertmanager.config.receivers[0].email_configs[0].require_tls=$EMAIL_REQUIRE_TLS"
     - |
       (kubectl get deployment observation-grafana -n $MONITORING_NS -o yaml | grep GF_SERVER_ROOT_URL) || (kubectl get deployment observation-grafana -n $MONITORING_NS -o yaml | sed "/^        - name: GF_SECURITY_ADMIN_USER/i \\        - name: GF_SERVER_ROOT_URL\\n          value: https://$APP_DOMAIN/grafana\\n        - name: GF_SERVER_SERVE_FROM_SUB_PATH\\n          value: \"true\"" | kubectl apply -f -)
     - |
