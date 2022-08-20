@@ -48,7 +48,6 @@ kube-prometheus-stack:
     dashboards:
       default:
         search-engine-dashboard:
-          # This is a path to a file inside the dashboards directory inside the chart directory
           json: |
             {
             "annotations": {
